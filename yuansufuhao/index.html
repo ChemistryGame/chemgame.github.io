@@ -1,0 +1,439 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>化学元素消消乐 - 浙江师范大学 黄梦兰制作</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: "Microsoft YaHei", "Segoe UI", Arial, sans-serif;
+        }
+
+        body {
+            background: linear-gradient(135deg, #0f0c29, #302b63, #24243e);
+            background-size: cover;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 12px;
+            color: #e0e0e0;
+        }
+
+        .game-container {
+            width: 100%;
+            max-width: 950px;
+            background: rgba(30, 30, 50, 0.92);
+            border-radius: 20px;
+            box-shadow: 0 15px 45px rgba(0,0,0,0.8);
+            overflow: hidden;
+            position: relative;
+            backdrop-filter: blur(8px);
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .header {
+            background: linear-gradient(90deg, #1a237e, #0d47a1);
+            padding: 18px 25px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border-bottom: 2px solid #002171;
+        }
+
+        .title {
+            color: white;
+            font-size: 24px;
+            font-weight: bold;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.5);
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        /* 署名修改为灰白色 */
+        .author-tag {
+            font-size: 14px;
+            font-weight: normal;
+            color: #cccccc; 
+            letter-spacing: 1px;
+        }
+
+        .stat-box {
+            font-size: 20px;
+            font-weight: bold;
+            color: #fff;
+            background: rgba(0,0,0,0.4);
+            padding: 6px 16px;
+            border-radius: 30px;
+            box-shadow: inset 0 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .game-area { padding: 20px; }
+        .section { margin-bottom: 20px; }
+        .section-title {
+            font-size: 14px;
+            font-weight: bold;
+            text-align: center;
+            margin-bottom: 12px;
+            color: #90caf9;
+            background: rgba(255, 255, 255, 0.05);
+            padding: 5px;
+            border-radius: 10px;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(10, 1fr);
+            gap: 12px;
+            padding: 15px;
+            background: rgba(0,0,0,0.25);
+            border-radius: 15px;
+        }
+
+        /* 元素方块样式 */
+        .btn {
+            position: relative;
+            border: 1px solid rgba(255,255,255,0.15);
+            border-radius: 14px;
+            font-size: 18px;
+            font-weight: bold;
+            cursor: pointer;
+            padding: 10px 2px;
+            color: white;
+            transition: all 0.1s ease;
+            aspect-ratio: 1 / 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            box-shadow: 0 5px 0px rgba(0,0,0,0.4), 0 8px 15px rgba(0,0,0,0.3);
+        }
+
+        .btn-default { background: linear-gradient(145deg, #42a5f5, #1565c0); }
+        .btn:hover { transform: translateY(-2px); filter: brightness(1.1); }
+        .btn.selected {
+            transform: translateY(4px);
+            box-shadow: 0 1px 0px rgba(0,0,0,0.4), 0 0 20px #ffd54f !important;
+            filter: brightness(1.25);
+            border-color: #ffd54f;
+        }
+
+        .btn .atomic-num {
+            position: absolute;
+            top: 4px; left: 6px;
+            font-size: 10px;
+            font-weight: 900;
+            color: rgba(0,0,0,0.4);
+        }
+
+        .btn.matched {
+            visibility: hidden;
+            opacity: 0;
+            transform: scale(0.5);
+            pointer-events: none;
+        }
+
+        /* 模式选择按钮定制样式 */
+        .mode-select-btn {
+            position: relative;
+            padding: 20px 10px;
+            font-size: 18px;
+            font-weight: bold;
+            border-radius: 15px;
+            border: 1px solid rgba(255,255,255,0.2);
+            cursor: pointer;
+            color: white;
+            transition: all 0.3s ease;
+            background: rgba(255, 255, 255, 0.05);
+            overflow: hidden;
+        }
+
+        .btn-easy { background: linear-gradient(145deg, #2e7d32, #1b5e20); }
+        .btn-hard { background: linear-gradient(145deg, #c62828, #b71c1c); }
+
+        .mode-select-btn:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 0 25px rgba(66, 165, 245, 0.6);
+            border-color: #42a5f5;
+        }
+
+        .mode-desc {
+            display: block;
+            font-size: 12px;
+            font-weight: normal;
+            margin-top: 8px;
+            opacity: 0.8;
+            letter-spacing: 1px;
+        }
+
+        /* 弹窗样式 */
+        .modal {
+            position: fixed; inset: 0;
+            background: rgba(0,0,0,0.92);
+            display: flex; justify-content: center; align-items: center;
+            z-index: 1000; backdrop-filter: blur(10px);
+        }
+
+        .modal-content {
+            background: #1e1e38; padding: 35px; border-radius: 24px;
+            text-align: center; max-width: 500px; width: 90%;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+
+        input[type="text"] {
+            width: 85%; padding: 12px; font-size: 18px; margin: 20px 0;
+            border-radius: 12px; border: 2px solid #42a5f5;
+            background: rgba(0,0,0,0.3); color: white; text-align: center; outline: none;
+        }
+
+        .res-list {
+            margin: 20px 0;
+            background: rgba(255,255,255,0.05);
+            border-radius: 15px;
+            padding: 15px 20px;
+            text-align: left;
+        }
+
+        .res-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px 0;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            font-size: 18px;
+        }
+
+        .play-again-btn {
+            width: 100%; padding: 15px; border-radius: 12px; border: none;
+            background: #1e88e5; color: white; font-weight: bold;
+            cursor: pointer; font-size: 18px; transition: 0.3s;
+        }
+
+        .music-control {
+            position: fixed; bottom: 25px; left: 25px; cursor: pointer;
+            font-size: 22px; background: rgba(30, 30, 50, 0.85);
+            width: 50px; height: 50px; border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            border: 1px solid rgba(255,255,255,0.2);
+        }
+
+        .hidden { display: none !important; }
+
+        @media (max-width: 768px) {
+            .grid { grid-template-columns: repeat(5, 1fr); gap: 8px; }
+            .title { font-size: 18px; flex-direction: column; align-items: flex-start; gap: 5px; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="music-control" id="bgMusicToggle">🎵</div>
+
+<div class="game-container">
+    <div class="header">
+        <div class="title">
+            <span>🧪 化学元素消消乐</span>
+            <span class="author-tag">浙江师范大学 教育学院 黄梦兰制作</span>
+        </div>
+        <div class="stats-bar" style="display:flex; gap:15px;">
+            <div class="stat-box">⏱️ <span id="timer">00:00</span></div>
+            <div class="stat-box">⭐ <span id="score">0</span></div>
+        </div>
+    </div>
+
+    <div class="game-area">
+        <div class="section">
+            <div class="section-title">元素名称 (Name)</div>
+            <div id="name-grid" class="grid"></div>
+        </div>
+        <div class="section">
+            <div class="section-title">元素符号 (Symbol)</div>
+            <div id="symbol-grid" class="grid"></div>
+        </div>
+    </div>
+</div>
+
+<div id="start-modal" class="modal">
+    <div class="modal-content">
+        <h1 style="color: #42a5f5; margin-bottom:10px; font-size: 32px;">欢迎来到化学消消乐游戏</h1>
+        <p class="author-tag" style="margin-bottom: 20px; display: block;">浙江师范大学 教育学院 黄梦兰制作</p>
+        <input type="text" id="playerNameInput" placeholder="请输入挑战者姓名" maxlength="10">
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+            <button class="mode-select-btn btn-easy" onclick="startGame('easy')">
+                初级模式
+                <span class="mode-desc">有颜色和序号提示</span>
+            </button>
+            <button class="mode-select-btn btn-hard" onclick="startGame('hard')">
+                高级模式
+                <span class="mode-desc">无提示，全盲挑战</span>
+            </button>
+        </div>
+    </div>
+</div>
+
+<div id="result-modal" class="modal hidden">
+    <div class="modal-content">
+        <h2 id="res-title-text" style="color: #ffd54f; font-size: 28px; margin-bottom: 10px;">挑战结束！</h2>
+        <div class="res-list">
+            <div class="res-item">
+                <span class="res-label">最终得分：</span>
+                <span id="res-score" style="color:#66bb6a; font-weight:bold;">0</span>
+            </div>
+            <div class="res-item">
+                <span class="res-label">挑战耗时：</span>
+                <span id="res-time" style="color:#42a5f5; font-weight:bold;">00:00</span>
+            </div>
+            <div style="margin-top:15px;">
+                <p style="color:#90caf9; font-size:14px; margin-bottom:5px;">错误记录反馈：</p>
+                <div id="res-errors" style="font-size: 13px; color: #ff8a65; max-height:80px; overflow-y:auto; line-height:1.6;">
+                    暂无错误。
+                </div>
+            </div>
+        </div>
+        <button onclick="location.reload()" class="play-again-btn">再次挑战</button>
+    </div>
+</div>
+
+<script>
+    const elements = [
+        {id:1, name:"氢", symbol:"H", color:"#ef5350"}, {id:2, name:"氦", symbol:"He", color:"#ec407a"},
+        {id:3, name:"锂", symbol:"Li", color:"#ab47bc"}, {id:4, name:"铍", symbol:"Be", color:"#7e57c2"},
+        {id:5, name:"硼", symbol:"B", color:"#5c6bc0"}, {id:6, name:"碳", symbol:"C", color:"#42a5f5"},
+        {id:7, name:"氮", symbol:"N", color:"#29b6f6"}, {id:8, name:"氧", symbol:"O", color:"#26c6da"},
+        {id:9, name:"氟", symbol:"F", color:"#26a69a"}, {id:10, name:"氖", symbol:"Ne", color:"#66bb6a"},
+        {id:11, name:"钠", symbol:"Na", color:"#9ccc65"}, {id:12, name:"镁", symbol:"Mg", color:"#d4e157"},
+        {id:13, name:"铝", symbol:"Al", color:"#ffee58"}, {id:14, name:"硅", symbol:"Si", color:"#ffca28"},
+        {id:15, name:"磷", symbol:"P", color:"#ffa726"}, {id:16, name:"硫", symbol:"S", color:"#ff7043"},
+        {id:17, name:"氯", symbol:"Cl", color:"#8d6e63"}, {id:18, name:"氩", symbol:"Ar", color:"#bdbdbd"},
+        {id:19, name:"钾", symbol:"K", color:"#78909c"}, {id:20, name:"钙", symbol:"Ca", color:"#9e9e9e"}
+    ];
+
+    const sounds = {
+        bg: new Audio('sounds/bg.mp3'),
+        click: new Audio('sounds/click.mp3'),
+        right: new Audio('sounds/right.mp3'),
+        wrong: new Audio('sounds/wrong.mp3'),
+        win: new Audio('sounds/win.mp3')
+    };
+    sounds.bg.loop = true;
+
+    let state = {
+        name: "", mode: "easy", score: 0, startTime: 0, 
+        matches: 0, selectedName: null, selectedSymbol: null, 
+        errors: [], bgOn: false
+    };
+
+    function startGame(mode) {
+        state.name = document.getElementById('playerNameInput').value.trim() || "挑战者";
+        state.mode = mode;
+        state.startTime = Date.now();
+        document.getElementById('start-modal').classList.add('hidden');
+        toggleMusic(true);
+        setInterval(updateTimer, 1000);
+        render();
+    }
+
+    function updateTimer() {
+        const diff = Math.floor((Date.now() - state.startTime) / 1000);
+        const m = Math.floor(diff / 60).toString().padStart(2, '0');
+        const s = (diff % 60).toString().padStart(2, '0');
+        document.getElementById('timer').textContent = `${m}:${s}`;
+    }
+
+    function render() {
+        const nGrid = document.getElementById('name-grid');
+        const sGrid = document.getElementById('symbol-grid');
+        const names = [...elements].sort(() => Math.random() - 0.5);
+        const symbols = [...elements].sort(() => Math.random() - 0.5);
+        names.forEach(el => nGrid.appendChild(createBtn(el, 'name')));
+        symbols.forEach(el => sGrid.appendChild(createBtn(el, 'symbol')));
+    }
+
+    function createBtn(el, type) {
+        const b = document.createElement('button');
+        b.className = 'btn btn-default';
+        b.dataset.id = el.id;
+        if (state.mode === 'easy') {
+            b.style.background = `linear-gradient(145deg, ${el.color}, ${adjustColor(el.color, -25)})`;
+            b.style.color = '#1a1a1a';
+            b.innerHTML = `<span class="atomic-num">${el.id}</span>${type==='name'?el.name:el.symbol}`;
+        } else {
+            b.textContent = type==='name'?el.name:el.symbol;
+        }
+        b.onclick = () => {
+            sounds.click.currentTime = 0; sounds.click.play().catch(()=>{});
+            if (b.classList.contains('selected')) {
+                b.classList.remove('selected');
+                type==='name' ? state.selectedName = null : state.selectedSymbol = null;
+                return;
+            }
+            if (type === 'name') {
+                if(state.selectedName) state.selectedName.classList.remove('selected');
+                state.selectedName = b;
+            } else {
+                if(state.selectedSymbol) state.selectedSymbol.classList.remove('selected');
+                state.selectedSymbol = b;
+            }
+            b.classList.add('selected');
+            if (state.selectedName && state.selectedSymbol) check();
+        };
+        return b;
+    }
+
+    function check() {
+        const n = state.selectedName;
+        const s = state.selectedSymbol;
+        if (n.dataset.id === s.dataset.id) {
+            sounds.right.currentTime = 0; sounds.right.play().catch(()=>{});
+            state.score += 10; state.matches++;
+            n.classList.add('matched'); s.classList.add('matched');
+            if (state.matches === 20) end();
+        } else {
+            sounds.wrong.currentTime = 0; sounds.wrong.play().catch(()=>{});
+            state.score -= 5;
+            const correctEl = elements.find(e => e.id == n.dataset.id);
+            state.errors.push(`${correctEl.name} ➔ ${correctEl.symbol}`);
+            n.classList.add('shake'); s.classList.add('shake');
+            setTimeout(() => { n.classList.remove('shake', 'selected'); s.classList.remove('shake', 'selected'); }, 400);
+        }
+        document.getElementById('score').textContent = state.score;
+        state.selectedName = state.selectedSymbol = null;
+    }
+
+    function end() {
+        sounds.win.play().catch(()=>{});
+        document.getElementById('result-modal').classList.remove('hidden');
+        document.getElementById('res-title-text').textContent = `${state.name}挑战结束！`;
+        document.getElementById('res-score').textContent = state.score;
+        document.getElementById('res-time').textContent = document.getElementById('timer').textContent;
+        const errDiv = document.getElementById('res-errors');
+        if(state.errors.length > 0) {
+            errDiv.innerHTML = [...new Set(state.errors)].join(' | ');
+        }
+    }
+
+    function toggleMusic(forcePlay = false) {
+        if (!state.bgOn || forcePlay) {
+            sounds.bg.play().catch(() => {});
+            state.bgOn = true;
+            document.getElementById('bgMusicToggle').textContent = "🎵";
+        } else {
+            sounds.bg.pause();
+            state.bgOn = false;
+            document.getElementById('bgMusicToggle').textContent = "🔇";
+        }
+    }
+
+    function adjustColor(hex, percent) {
+        let num = parseInt(hex.replace("#",""), 16), amt = Math.round(2.55 * percent),
+            R = (num >> 16) + amt, G = (num >> 8 & 0x00FF) + amt, B = (num & 0x0000FF) + amt;
+        return "#" + (0x1000000 + (R<255?R<0?0:R:255)*0x10000 + (G<255?G<0?0:G:255)*0x100 + (B<255?B<0?0:B:255)).toString(16).slice(1);
+    }
+    document.getElementById('bgMusicToggle').onclick = () => toggleMusic();
+</script>
+
+</body>
+</html>
