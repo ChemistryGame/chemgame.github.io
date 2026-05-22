@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>十字交叉法写化学式动态演示 - 黄梦兰老师定制版</title>
+    <style>
+        :root {
+            --pos-color: #ff4d4d;
+            --neg-color: #2ecc71;
+            --accent-color: #3498db;
+        }
+
+        body { font-family: 'Microsoft YaHei', sans-serif; margin: 0; background: #eaeff2; display: flex; justify-content: center; align-items: center; height: 100vh; overflow: hidden; }
+        
+        /* 左上角署名样式 */
+        .author-tag {
+            position: absolute;
+            top: 20px;
+            left: 25px;
+            font-size: 14px;
+            color: #95a5a6;
+            font-weight: 500;
+            letter-spacing: 0.5px;
+            z-index: 10;
+        }
+
+        /* 初始弹窗 */
+        #modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); display: flex; justify-content: center; align-items: center; z-index: 1000; }
+        #modal-content { background: white; padding: 40px; border-radius: 20px; width: 500px; box-shadow: 0 15px 35px rgba(0,0,0,0.5); }
+        #modal-content h2 { color: var(--accent-color); text-align: center; margin-top: 0; }
+        .rule-list { line-height: 2.2; color: #333; margin: 25px 0; font-size: 18px; }
+        #start-btn { background: var(--accent-color); color: white; border: none; padding: 15px; border-radius: 10px; cursor: pointer; font-size: 18px; width: 100%; transition: 0.3s; }
+        #start-btn:hover { background: #2980b9; }
+
+        /* 主界面 */
+        .container { display: flex; width: 1200px; height: 750px; background: white; border-radius: 15px; overflow: hidden; box-shadow: 0 0 30px rgba(0,0,0,0.1); position: relative; }
+        
+        .canvas-area { flex: 3; position: relative; border-right: 2px solid #eee; display: flex; flex-direction: column; align-items: center; padding: 40px 20px 20px; }
+        .canvas-title { font-size: 28px; color: #2c3e50; font-weight: bold; margin-bottom: 5px; }
+        .canvas-hint { color: #95a5a6; font-size: 16px; margin-bottom: 40px; min-height: 24px; }
+        
+        .display-container { flex: 1; width: 100%; display: flex; align-items: center; justify-content: center; position: relative; }
+        
+        /* 离子框 */
+        .ion-box { width: 180px; height: 180px; border: 3px dashed #ddd; border-radius: 15px; display: flex; justify-content: center; align-items: center; font-size: 55px; position: relative; margin: 0 80px; transition: 0.4s; z-index: 2; }
+        .active-pos { border-color: var(--pos-color); color: var(--pos-color); background: rgba(255, 77, 77, 0.05); }
+        .active-neg { border-color: var(--neg-color); color: var(--neg-color); background: rgba(46, 204, 113, 0.05); }
+        
+        /* 动画元素 */
+        .valence-move { position: absolute; font-size: 32px; font-weight: bold; transition: all 1s cubic-bezier(0.4, 0, 0.2, 1); z-index: 10; background: white; padding: 2px 5px; border-radius: 4px; }
+        .final-formula { font-size: 85px; display: flex; align-items: baseline; animation: fadeIn 0.6s ease-out; }
+        sub { font-size: 0.5em; margin-left: 2px; }
+
+        /* 控制区 */
+        .control-area { flex: 1.4; background: #fcfcfc; padding: 25px; display: flex; flex-direction: column; }
+        .section-title { font-weight: bold; margin: 15px 0 10px; font-size: 16px; color: #34495e; border-left: 5px solid var(--accent-color); padding-left: 12px; }
+        .ion-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(85px, 1fr)); gap: 10px; max-height: 180px; overflow-y: auto; }
+        .ion-item { background: white; border: 1px solid #e0e0e0; border-radius: 8px; padding: 8px; text-align: center; cursor: pointer; transition: 0.2s; }
+        .ion-item:hover { border-color: var(--accent-color); transform: translateY(-2px); }
+        .ion-symbol { font-size: 20px; font-weight: bold; display: block; }
+        .ion-name { font-size: 12px; color: #7f8c8d; }
+
+        .btn-group { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 20px; }
+        .ctrl-btn { padding: 15px; border: none; border-radius: 8px; cursor: pointer; font-size: 15px; font-weight: bold; }
+        #reset-btn { background: #ecf0f1; color: #7f8c8d; }
+        #next-btn { background: #e67e22; color: white; }
+        #next-btn.restart { background: #27ae60; }
+
+        .rules-flow { margin-top: 20px; border-top: 1px solid #eee; padding-top: 15px; }
+        .rule-step { padding: 8px 12px; margin: 5px 0; border-radius: 6px; font-size: 14px; color: #95a5a6; }
+        .active-step { background: #fff3cd; color: #856404; font-weight: bold; border-left: 3px solid #f1c40f; }
+
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+        sup { 
+            font-size: 0.5em; 
+            position: relative; 
+            top: -0.8em;  
+            left: 0.2em;  
+        }
+    </style>
+</head>
+<body>
+
+<div id="modal-overlay">
+    <div id="modal-content">
+        <h2>十字交叉法 核心规律</h2>
+        <div class="rule-list">
+            1. <b>排顺序</b>：正价在前，负价在后<br>
+            2. <b>标化合价</b>：在符号正上方标出<br>
+            3. <b>交叉</b>：化合价的绝对值交叉做下标<br>
+            4. <b>化简合并</b>：约分、省略1、原子团加括号
+        </div>
+        <button id="start-btn">开始演示</button>
+    </div>
+</div>
+
+<div class="container">
+    <div class="author-tag">浙江师范大学 教育学院 黄梦兰改编制作</div>
+
+    <div class="canvas-area">
+        <div class="canvas-title">十字交叉法写化学式动态演示</div>
+        <div class="canvas-hint" id="status-hint">请点击右侧离子开始</div>
+        
+        <div class="display-container" id="canvas-main">
+            <div id="box-pos" class="ion-box"></div>
+            <div id="box-neg" class="ion-box"></div>
+            <div id="animation-layer" style="position:absolute; width:100%; height:100%; pointer-events:none;"></div>
+        </div>
+    </div>
+
+    <div class="control-area">
+        <div class="section-title">1、正离子区（正价）</div>
+        <div id="pos-grid" class="ion-grid"></div>
+
+        <div class="section-title">2、负离子区（负价）</div>
+        <div id="neg-grid" class="ion-grid"></div>
+
+        <div class="section-title">3、操作控制台</div>
+        <div class="btn-group">
+            <button id="reset-btn" class="ctrl-btn">重置清空</button>
+            <button id="next-btn" class="ctrl-btn">执行下一步 (0/4)</button>
+        </div>
+
+        <div class="section-title">4、核心规律</div>
+        <div class="rules-flow">
+            <div class="rule-step" id="step-1">①排顺序：正前负后</div>
+            <div class="rule-step" id="step-2">②标化合价：标正上方</div>
+            <div class="rule-step" id="step-3">③交叉：绝对值做下标</div>
+            <div class="rule-step" id="step-4">④化简：约分/省1/括号</div>
+        </div>
+    </div>
+</div>
+
+<script>
+    const posIons = [
+        { s: 'H', v: 1, name: '氢离子', poly: false }, { s: 'Na', v: 1, name: '钠离子', poly: false },
+        { s: 'K', v: 1, name: '钾离子', poly: false }, { s: 'Ag', v: 1, name: '银离子', poly: false },
+        { s: 'NH₄', v: 1, name: '铵根离子', poly: true }, { s: 'Mg', v: 2, name: '镁离子', poly: false },
+        { s: 'Ca', v: 2, name: '钙离子', poly: false }, { s: 'Ba', v: 2, name: '钡离子', poly: false },
+        { s: 'Zn', v: 2, name: '锌离子', poly: false }, { s: 'Cu', v: 2, name: '铜离子', poly: false },
+        { s: 'Fe', v: 2, name: '亚铁离子', poly: false }, { s: 'Fe', v: 3, name: '铁离子', poly: false },
+        { s: 'Al', v: 3, name: '铝离子', poly: false }
+    ];
+
+    // 已在此处插入：碳酸氢根离子 和 亚硫酸根离子
+    const negIons = [
+        { s: 'Cl', v: 1, name: '氯离子', poly: false }, { s: 'OH', v: 1, name: '氢氧根离子', poly: true },
+        { s: 'NO₃', v: 1, name: '硝酸根离子', poly: true }, { s: 'HCO₃', v: 1, name: '碳酸氢根离子', poly: true },
+        { s: 'O', v: 2, name: '氧负离子', poly: false }, { s: 'S', v: 2, name: '硫负离子', poly: false },
+        { s: 'SO₄', v: 2, name: '硫酸根离子', poly: true }, { s: 'SO₃', v: 2, name: '亚硫酸根离子', poly: true },
+        { s: 'CO₃', v: 2, name: '碳酸根离子', poly: true }, { s: 'PO₄', v: 3, name: '磷酸根离子', poly: true }
+    ];
+
+    let currentPos = null, currentNeg = null, currentStep = 0;
+    const gcd = (a, b) => b === 0 ? a : gcd(b, a % b);
+
+    function init() {
+        const pGrid = document.getElementById('pos-grid');
+        const nGrid = document.getElementById('neg-grid');
+        posIons.forEach(ion => pGrid.appendChild(createIonCard(ion, 'pos')));
+        negIons.forEach(ion => nGrid.appendChild(createIonCard(ion, 'neg')));
+    }
+
+    function createIonCard(ion, type) {
+        const div = document.createElement('div');
+        div.className = 'ion-item';
+        div.innerHTML = `<span class="ion-symbol">${ion.s}<sup>${ion.v === 1 ? '' : ion.v}${type === 'pos' ? '+' : '-'}</sup></span><span class="ion-name">${ion.name}</span>`;
+        div.onclick = () => {
+            if (currentStep > 0) return;
+            if (type === 'pos') {
+                currentPos = ion;
+                const box = document.getElementById('box-pos');
+                box.innerHTML = `${ion.s}<sup>${ion.v === 1 ? '' : ion.v}+</sup>`;
+                box.classList.add('active-pos');
+            } else {
+                currentNeg = ion;
+                const box = document.getElementById('box-neg');
+                box.innerHTML = `${ion.s}<sup>${ion.v === 1 ? '' : ion.v}-</sup>`;
+                box.classList.add('active-neg');
+            }
+            if (currentPos && currentNeg) document.getElementById('status-hint').innerText = "已就绪，请点击下一步";
+        };
+        return div;
+    }
+
+    function reset() {
+        currentPos = null; currentNeg = null; currentStep = 0;
+        const main = document.getElementById('canvas-main');
+        main.innerHTML = `<div id="box-pos" class="ion-box"></div><div id="box-neg" class="ion-box"></div><div id="animation-layer" style="position:absolute; width:100%; height:100%; pointer-events:none;"></div>`;
+        document.getElementById('status-hint').innerText = "请点击右侧离子开始";
+        const nextBtn = document.getElementById('next-btn');
+        nextBtn.innerText = "执行下一步 (0/4)";
+        nextBtn.classList.remove('restart');
+        document.querySelectorAll('.rule-step').forEach(s => s.classList.remove('active-step'));
+    }
+
+    document.getElementById('reset-btn').onclick = reset;
+    document.getElementById('start-btn').onclick = () => document.getElementById('modal-overlay').style.display = 'none';
+
+    document.getElementById('next-btn').onclick = function() {
+        if (currentStep === 4) { reset(); return; }
+        if (!currentPos || !currentNeg) { alert("请先选择离子！"); return; }
+
+        currentStep++;
+        this.innerText = `执行下一步 (${currentStep}/4)`;
+        document.querySelectorAll('.rule-step').forEach(s => s.classList.remove('active-step'));
+        document.getElementById(`step-${currentStep}`).classList.add('active-step');
+
+        const layer = document.getElementById('animation-layer');
+        
+        if (currentStep === 1) {
+            document.getElementById('box-pos').style.borderColor = "transparent";
+            document.getElementById('box-neg').style.borderColor = "transparent";
+            document.getElementById('status-hint').innerText = "第一步：正前负后，去掉方框";
+        } 
+        else if (currentStep === 2) {
+            layer.innerHTML = `
+                <div id="v-pos-tag" class="valence-move" style="color:var(--pos-color); left:calc(50% - 210px); top:140px;">+${currentPos.v}</div>
+                <div id="v-neg-tag" class="valence-move" style="color:var(--neg-color); left:calc(50% + 130px); top:140px;">-${currentNeg.v}</div>
+            `;
+            document.getElementById('status-hint').innerText = "第二步：在正上方标出化合价";
+        }
+        else if (currentStep === 3) {
+            const vPos = document.getElementById('v-pos-tag');
+            const vNeg = document.getElementById('v-neg-tag');
+            
+            vPos.style.transform = "translate(425px, 160px) scale(0.8)";
+            vNeg.style.transform = "translate(-260px, 160px) scale(0.8)";
+            
+            vPos.innerText = currentPos.v;
+            vNeg.innerText = currentNeg.v;
+            document.getElementById('status-hint').innerText = "第三步：交叉，将电荷数写在对方符号右下角";
+        }
+        else if (currentStep === 4) {
+            this.innerText = "重新开始演示";
+            this.classList.add('restart');
+            layer.innerHTML = '';
+            
+            const common = gcd(currentPos.v, currentNeg.v);
+            let nPos = currentNeg.v / common;
+            let nNeg = currentPos.v / common;
+
+            let html = `<div class="final-formula">`;
+            let sPos = (currentPos.poly && nPos > 1) ? `(${currentPos.s})` : currentPos.s;
+            html += `<span>${sPos}</span>${nPos > 1 ? `<sub>${nPos}</sub>` : ''}`;
+            let sNeg = (currentNeg.poly && nNeg > 1) ? `(${currentNeg.s})` : currentNeg.s;
+            html += `<span>${sNeg}</span>${nNeg > 1 ? `<sub>${nNeg}</sub>` : ''}`;
+            html += `</div>`;
+            
+            document.getElementById('canvas-main').innerHTML = html;
+            document.getElementById('status-hint').innerText = "第四步：约分、省1、加括号，得到化学式";
+        }
+    };
+
+    init();
+</script>
+</body>
+</html>
